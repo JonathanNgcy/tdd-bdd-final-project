@@ -27,7 +27,7 @@ import os
 import logging
 import unittest
 from decimal import Decimal
-from service.models import Product, Category, db
+from service.models import Product, Category, DataValidationError, db
 from service import app
 from tests.factories import ProductFactory
 
@@ -104,3 +104,100 @@ class TestProductModel(unittest.TestCase):
     #
     # ADD YOUR TEST CASES HERE
     #
+
+    def test_read_product(self):
+        """It should read every persisted product attribute."""
+        product = ProductFactory()
+        product.create()
+        logging.debug("Created product: %s", product)
+        self.assertIsNotNone(product.id)
+        self.assertEqual(Product.find(product.id).serialize(), product.serialize())
+        self.assertIsNone(Product.find(0))
+
+    def test_update_product(self):
+        """It should persist an updated description without adding a row."""
+        product = ProductFactory()
+        product.create()
+        product_id = product.id
+        product.description = "Updated description"
+        product.update()
+        self.assertEqual(len(Product.all()), 1)
+        found = Product.find(product_id)
+        self.assertEqual(found.id, product_id)
+        self.assertEqual(found.description, "Updated description")
+
+    def test_update_without_id(self):
+        """It should reject updates to an unsaved product."""
+        product = ProductFactory(id=None)
+        with self.assertRaises(DataValidationError):
+            product.update()
+
+    def test_delete_product(self):
+        """It should remove the saved product."""
+        product = ProductFactory()
+        product.create()
+        self.assertEqual(len(Product.all()), 1)
+        product.delete()
+        self.assertEqual(Product.all(), [])
+        self.assertIsNone(Product.find(product.id))
+
+    def test_list_all_products(self):
+        """It should list every saved product."""
+        self.assertEqual(Product.all(), [])
+        products = ProductFactory.create_batch(5)
+        for product in products:
+            product.create()
+        self.assertEqual({p.id for p in Product.all()}, {p.id for p in products})
+
+    def test_find_by_name(self):
+        """It should return only products with an exact matching name."""
+        products = [ProductFactory(name=name) for name in ["Hat", "Shoes", "Hat"]]
+        for product in products:
+            product.create()
+        found = list(Product.find_by_name("Hat"))
+        self.assertEqual({p.id for p in found}, {products[0].id, products[2].id})
+        self.assertTrue(all(p.name == "Hat" for p in found))
+        self.assertEqual(list(Product.find_by_name("Missing")), [])
+
+    def test_find_by_category(self):
+        """It should return only products in the requested category."""
+        products = [ProductFactory(category=value) for value in [Category.FOOD, Category.TOOLS, Category.FOOD]]
+        for product in products:
+            product.create()
+        found = list(Product.find_by_category(Category.FOOD))
+        self.assertEqual({p.id for p in found}, {products[0].id, products[2].id})
+        self.assertTrue(all(p.category == Category.FOOD for p in found))
+
+    def test_find_by_availability(self):
+        """It should find both available and unavailable products."""
+        products = [ProductFactory(available=value) for value in [True, False, True]]
+        for product in products:
+            product.create()
+        for available in [True, False]:
+            found = list(Product.find_by_availability(available))
+            expected = {p.id for p in products if p.available == available}
+            self.assertEqual({p.id for p in found}, expected)
+            self.assertTrue(all(p.available == available for p in found))
+
+    def test_find_by_price(self):
+        """It should query prices supplied as Decimal or string."""
+        product = ProductFactory(price=Decimal("12.50"))
+        product.create()
+        self.assertEqual(list(Product.find_by_price(Decimal("12.50"))), [product])
+        self.assertEqual(list(Product.find_by_price(' "12.50" ')), [product])
+
+    def test_serialize_deserialize(self):
+        """It should preserve all fields in a serialization round trip."""
+        product = ProductFactory()
+        data = product.serialize()
+        restored = Product().deserialize(data)
+        restored.id = product.id
+        self.assertEqual(restored.serialize(), data)
+
+    def test_deserialize_invalid_data(self):
+        """It should reject missing, invalid, and incorrectly typed input."""
+        data = ProductFactory().serialize()
+        for invalid in [None, {}, dict(data, available="true"), dict(data, category="INVALID")]:
+            with self.subTest(data=invalid):
+                with self.assertRaises(DataValidationError):
+                    Product().deserialize(invalid)
