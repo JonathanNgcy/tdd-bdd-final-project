@@ -1,49 +1,41 @@
-# TDD / BDD Final Project Template
+# TDD / BDD Product Catalog Final Project
 
-This repository contains the template to be used for the Final Project for the Coursera course **Introduction to TDD/BDD**.
+A Flask and PostgreSQL product catalog with unit tests and Selenium/Behave acceptance tests.
 
-## Usage
+## Implemented
 
-This repository is to be used as a template to create your own repository in your own GitHub account. No need to Fork it as it has been set up as a Template. This will avoid confusion when making Pull Requests in the future.
+- Fake product factory covering all product attributes.
+- Model tests for CRUD, listing, name/category/availability/price queries, and validation.
+- REST API for create, retrieve, update, delete, and filtered product lists.
+- BDD background data loading through the REST API.
+- Nine browser scenarios covering service health, create, read, update, delete, listing, and three searches.
+- Browser steps with explicit waits and reproducible Chrome for Testing setup.
 
-From the GitHub **Code** page, press the green **Use this template** button to create your own repository from this template. 
+## Run in the Skills Network Cloud IDE
 
-Name your repo: `tdd-bdd-final-project`.
+    bash bin/setup.sh
+    exit
 
-## Setup
+Open a new terminal, change into this repository, then run:
 
-After entering the lab environment you will need to run the `setup.sh` script in the `./bin` folder to install the prerequisite software.
+    nosetests
+    make lint
+    honcho start
 
-```bash
-bash bin/setup.sh
-```
+In a second terminal:
 
-Then you must exit the shell and start a new one for the Python virtual environment to be activated.
+    behave
 
-```bash
-exit
-```
+The setup script installs official Chrome for Testing and its matching driver in ~/.cache/tdd-bdd-browser.
+If the lab's preinstalled browser or driver is incomplete, run python bin/setup_browser.py after installing dependencies.
+Optional overrides are CHROME_BIN, CHROMEDRIVER_PATH, DRIVER, BASE_URL, and WAIT_SECONDS.
 
-## Tasks
+Search scenarios clear the form before choosing a filter because the starter UI initially selects availability and category values.
 
-In this project you will use good Test Driven Development (TDD) and Behavior Driven Development (BDD) techniques to write TDD test cases, BDD scenarios, and code, updating the following files:
+## Verified in the lab
 
-```bash
-tests/test_models.py
-tests/test_routes.py
-service/routes.py
-features/products.feature
-features/steps/load_steps.py
-```
+- 32 unit tests passed; 97% service coverage.
+- make lint passed; pylint 10.00/10.
+- 9 Behave scenarios and 110 steps passed.
 
-You will be given partial implementations in each of these files to get you started. Use those implementations as examples of the code you should write.
-
-## License
-
-Licensed under the Apache License. See [LICENSE](/LICENSE)
-
-## Author
-
-John Rofrano, Senior Technical Staff Member, DevOps Champion, @ IBM Research
-
-## <h3 align="center"> © IBM Corporation 2023. All rights reserved. <h3/>
+Based on the IBM Developer Skills Network final-project template, licensed under Apache 2.0.
